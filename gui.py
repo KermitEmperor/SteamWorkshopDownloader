@@ -1,13 +1,13 @@
-import os, sys
 import time
 import html
 import shutil
 from urllib.request import urlopen
 import tkinter.ttk as ttk
 import tkinter as tk 
+import os
+import threading
 from tkinter import filedialog
 from PIL import Image, ImageTk
-import os
 from ttkthemes import ThemedTk
 
 windowMain = ThemedTk(theme="equilux")
@@ -180,7 +180,6 @@ def workshop():
         original = downloadFolderValue+r"\steamapps\workshop\content"+"\\"+appid+"\\"+workshopItem
         shutil.move(original,downloadFolderValue)
         os.chdir(downloadFolderValue)
-
         if var2Value:
             modNamePre = page[(page.index('\t\t\t<meta name="viewport" content="width=device-width,initial-scale=1">')+2)].split("::")
             modName = str(html.unescape(modNamePre[-1]).split("</title>")[0])
@@ -192,7 +191,10 @@ def workshop():
         downloadResponse.set(downloadingResponse)
         os.chdir(originaldir)
         time.sleep(3)
-    
+
+
+def run():
+    threading.Thread(target=workshop).start()
 
 var1 = tk.IntVar()
 ttk.Checkbutton(windowMain, text='Multiple Links',variable=var1, command=bulkfilesD).grid(row=4, column=0, padx=(0, 50))
@@ -204,7 +206,7 @@ def yes():
 downloadResponse.set("")
 
 
-downloadButton = ttk.Button(windowMain, text="Download", width=15, command=workshop)
+downloadButton = ttk.Button(windowMain, text="Download", width=15, command=run)
 downloadButton.grid(row=5, column=0, ipadx= 10)
 T = ttk.Entry(windowMain, width=40,textvariable=downloadResponse, state=tk.DISABLED)
 T.grid(row=5, column=1, ipady=10, padx=(0,58))
