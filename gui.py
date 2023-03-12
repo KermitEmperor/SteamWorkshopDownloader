@@ -6,6 +6,8 @@ import tkinter.ttk as ttk
 import tkinter as tk 
 import os
 import threading
+import tempfile
+import atexit
 from tkinter import filedialog
 from PIL import Image, ImageTk
 from ttkthemes import ThemedTk
@@ -17,6 +19,7 @@ windowMain['background']='#464646'
 windowMain.title("Workshop Downloader GUI")
 icon = tk.PhotoImage(file='icon.png')
 windowMain.iconphoto(False, icon)
+
 
 originaldir = os.getcwd()
 
@@ -134,6 +137,9 @@ ttk.Checkbutton(windowMain, text='Rename downloaded folder to Mod name instead o
 downloadResponse=tk.StringVar()
 
 def workshop():
+    global TemporaryDir
+    try: TemporaryDir
+    except NameError: TemporaryDir = tempfile.mkdtemp()
     var2Value = var2.get()
     steamCMD = steamCDMlocation.get()
     downloadFolderValue = downloadFolder.get()
@@ -174,11 +180,13 @@ def workshop():
         if not "&" in i:
             workshopItem = i.replace("https://steamcommunity.com/sharedfiles/filedetails/?id=", "")
 
-        arguments = steamCMD +  " +force_install_dir " + downloadFolderValue + " +login anonymous "+  "+workshop_download_item "+ appid +" " + workshopItem + " +quit"
-        downloadResponse.set("Downloading...")
+        arguments = steamCMD +  " +force_install_dir " + TemporaryDir + " +login anonymous "+  "+workshop_download_item "+ appid +" " + workshopItem + " +quit"
+        try: downloadResponse.set("Downloading...")
+        except RuntimeError: break
         os.system(arguments)
-        original = downloadFolderValue+r"\steamapps\workshop\content"+"\\"+appid+"\\"+workshopItem
-        shutil.move(original,downloadFolderValue)
+        original = TemporaryDir+r"\steamapps\workshop\content"+"\\"+appid+"\\"+workshopItem
+        try: shutil.move(original,downloadFolderValue)
+        except shutil.Error(): pass
         os.chdir(downloadFolderValue)
         if var2Value:
             modNamePre = page[(page.index('\t\t\t<meta name="viewport" content="width=device-width,initial-scale=1">')+2)].split("::")
@@ -188,20 +196,31 @@ def workshop():
             os.rename(workshopItem, modName)
         progress+=1
         downloadingResponse = "Downloaded "+ str(progress) + "/"+str(len(link))
-        downloadResponse.set(downloadingResponse)
+        try: downloadResponse.set(downloadingResponse)
+        except RuntimeError: break
         os.chdir(originaldir)
         time.sleep(3)
+    if int(progress) == int(len(link)):
+        shutil.rmtree(TemporaryDir)
 
+def cleanTempDir():
+    try: 
+        shutil.rmtree(TemporaryDir)
+        print("Saved from Temporary Files")
+        windowMain.after(0, windowMain.quit)
+    except: 
+        print("error at CleanTempDir")
+        pass
 
 def run():
-    threading.Thread(target=workshop).start()
+    try: threading.Thread(target=workshop).start()
+    except:
+        cleanTempDir()
+        print("something went wrong")
 
 var1 = tk.IntVar()
 ttk.Checkbutton(windowMain, text='Multiple Links',variable=var1, command=bulkfilesD).grid(row=4, column=0, padx=(0, 50))
 ttk.Button(windowMain, text="[?]", width= 3, command=bulkFilesHelp).place(x=110, y=88)
-
-def yes():
-    downloadResponse.set("you")
 
 downloadResponse.set("")
 
@@ -211,4 +230,7 @@ downloadButton.grid(row=5, column=0, ipadx= 10)
 T = ttk.Entry(windowMain, width=40,textvariable=downloadResponse, state=tk.DISABLED)
 T.grid(row=5, column=1, ipady=10, padx=(0,58))
 ttk.Label(windowMain, text="If the program is not responding, don't worry, its working!").place(x=10, y=160)
+
+windowMain.protocol("WM_DELETE_WINDOW", cleanTempDir)
+
 windowMain.mainloop()
