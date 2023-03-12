@@ -214,10 +214,10 @@ def cleanTempDir():
     try: 
         shutil.rmtree(TemporaryDir)
         print("Saved from Temporary Files")
-        windowMain.after(0, windowMain.quit)
     except: 
         print("error at CleanTempDir")
         pass
+    windowMain.quit()
 
 def run():
     try: threading.Thread(target=workshop).start()
