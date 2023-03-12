@@ -7,7 +7,6 @@ import tkinter as tk
 import os
 import threading
 import tempfile
-import atexit
 from tkinter import filedialog
 from PIL import Image, ImageTk
 from ttkthemes import ThemedTk
@@ -171,6 +170,7 @@ def workshop():
     
     progress = 0
     for i in link:
+        if windowCheck(): break 
         page = urlopen(i).read().decode("utf-8").splitlines()
         appidPre = page[(page.index('		<div class="apphub_AppDetails">')+1)].split("/")
         appid = appidPre[appidPre.index("apps")+1]
@@ -181,8 +181,7 @@ def workshop():
             workshopItem = i.replace("https://steamcommunity.com/sharedfiles/filedetails/?id=", "")
 
         arguments = steamCMD +  " +force_install_dir " + TemporaryDir + " +login anonymous "+  "+workshop_download_item "+ appid +" " + workshopItem + " +quit"
-        try: downloadResponse.set("Downloading...")
-        except RuntimeError: break
+        downloadResponse.set("Downloading...")
         os.system(arguments)
         original = TemporaryDir+r"\steamapps\workshop\content"+"\\"+appid+"\\"+workshopItem
         try: shutil.move(original,downloadFolderValue)
@@ -196,12 +195,20 @@ def workshop():
             os.rename(workshopItem, modName)
         progress+=1
         downloadingResponse = "Downloaded "+ str(progress) + "/"+str(len(link))
-        try: downloadResponse.set(downloadingResponse)
-        except RuntimeError: break
+        if windowCheck(): break
+        downloadResponse.set(downloadingResponse)
         os.chdir(originaldir)
         time.sleep(3)
     if int(progress) == int(len(link)):
         shutil.rmtree(TemporaryDir)
+
+def windowCheck():
+    try: 
+        windowMain.state()
+        return False
+    except: 
+        cleanTempDir()
+        return True
 
 def cleanTempDir():
     try: 
